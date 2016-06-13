@@ -1,15 +1,4 @@
-/*******************************************************************************\
-*********\
-
-Calculation of a texture descriptors from GLCM (Grey Level Co-occurrence
-Matrix'es)
-The code was submitted by Daniel Eaton [danieljameseaton@...]
-
-\*******************************************************************************\
-*********/
-
 //#include "_cvaux.h"
-
 //#include "legacy.h"
 #include "precomp.hpp"
 
@@ -70,7 +59,7 @@ if( !srcStepDirections )
 srcStepDirections = defaultStepDirections;
 }
 
-//CV_CALL( stepDirections = (int*)cvAlloc(numStepDirections*2*sizeof(stepDirections[0])));
+
 CV_CALL( stepDirections = new int
 [numStepDirections*2*sizeof(stepDirections[0])]);
 memcpy( stepDirections, srcStepDirections,
@@ -78,8 +67,6 @@ numStepDirections*2*sizeof(stepDirections[0]));
 
 cvGetImageRawData( srcImage, &srcImageData, &srcImageStep, &srcImageSize );
 
-// roll together Directions and magnitudes together with knowledge of image (step)
-// CV_CALL( memorySteps = (int*)cvAlloc(numStepDirections*sizeof(memorySteps[0])));
 CV_CALL( memorySteps = new int [ numStepDirections*sizeof(memorySteps[0]) ]);
 
 for( stepLoop = 0; stepLoop < numStepDirections; stepLoop++ )
@@ -91,7 +78,6 @@ memorySteps[stepLoop] = stepDirections[stepLoop*2 + 0]*srcImageStep +
 stepDirections[stepLoop*2 + 1];
 }
 
-//CV_CALL( newGLCM = (CvGLCM*)cvAlloc(sizeof(newGLCM)));
 CV_CALL( newGLCM = new CvGLCM [sizeof(newGLCM)] );
 memset( newGLCM, 0, sizeof(newGLCM) );
 
@@ -155,14 +141,6 @@ else if( optimizationType == CV_GLCM_OPTIMIZATION_HISTOGRAM )
 {
 CV_ERROR( CV_StsBadFlag, "Histogram-based method is not implemented" );
 
-/* newGLCM->numMatrices *= 2;
-newGLCM->matrixSideLength = maxNumGreyLevels8u*2;
-
-icv_CreateGLCM_Histogram_8uC1R( srcImageStep, srcImageSize,
-srcImageData,
-newGLCM, numStepDirections,
-stepDirections, memorySteps );
-*/
 }
 
 __END__;
@@ -191,7 +169,7 @@ int matrixLoop;
 if( !GLCM )
 CV_ERROR( CV_StsNullPtr, "" );
 
-if( !(*GLCM) )
+if( *GLCM )
 EXIT; // repeated deallocation: just skip it.
 
 if( (flag == CV_GLCM_GLCM || flag == CV_GLCM_ALL) && (*GLCM)->matrices )
@@ -247,26 +225,17 @@ int colLoop, rowLoop, lineOffset = 0;
 double*** matrices = 0;
 
 // allocate memory to the matrices
-//CV_CALL( destGLCM->matrices = (double***)cvAlloc(sizeof(matrices[0])*numSteps ));
 CV_CALL( destGLCM->matrices = new double** [sizeof(matrices[0])*numSteps] );
 matrices = destGLCM->matrices;
 
 for( stepLoop=0; stepLoop<numSteps; stepLoop++ )
 {
-/*CV_CALL( matrices[stepLoop] = (double**)cvAlloc(
-sizeof(matrices[0])*matrixSideLength ));
-CV_CALL( matrices[stepLoop][0] = (double*)cvAlloc(
-sizeof(matrices[0][0])*
 
-matrixSideLength*matrixSideLength ));*/
-//CV_CALL( matrices[stepLoop] = new double*[sizeof(matrices[0])*matrixSideLength ]);
-CV_CALL(matrices[stepLoop]=(double**)cvAlloc( sizeof(matrices[0][0])*matrixSideLength )); 
+CV_CALL( matrices[stepLoop] = new double*[sizeof(matrices[0])*matrixSideLength ]);
+CV_CALL( matrices[stepLoop][0] = new double[sizeof(matrices[0][0])*matrixSideLength*matrixSideLength ]);
 
-//CV_CALL( matrices[stepLoop][0] = new double[sizeof(matrices[0][0])*matrixSideLength*matrixSideLength ]);
-CV_CALL(matrices[stepLoop][0]=(double*)cvAlloc ( sizeof(double)*matrixSideLength*matrixSideLength ));
-  
-//memset( matrices[stepLoop][0], 0, matrixSideLength*matrixSideLength*sizeof(matrices[0][0]) );
-memset(matrices[stepLoop][0],0,matrixSideLength*matrixSideLength*sizeof(double));  
+memset( matrices[stepLoop][0], 0, matrixSideLength*matrixSideLength*sizeof(matrices[0][0]) );
+
 for( sideLoop1 = 1; sideLoop1 < matrixSideLength; sideLoop1++ )
 {
 matrices[stepLoop][sideLoop1] = matrices[stepLoop][sideLoop1-1] +
@@ -274,7 +243,7 @@ matrixSideLength;
 }
 }
 
-//CV_CALL( stepIncrementsCounter = (int*)cvAlloc(numSteps*sizeof(stepIncrementsCounter[0])));
+
 CV_CALL( stepIncrementsCounter = new int [numSteps*sizeof(stepIncrementsCounter[0])]);
 memset( stepIncrementsCounter, 0, numSteps*sizeof(stepIncrementsCounter[0])
 );
@@ -361,18 +330,16 @@ descriptorOptimizationType;
 else
 {
 CV_ERROR( CV_StsBadFlag, "Histogram-based method is not implemented" );
-// destGLCM->descriptorOptimizationType = destGLCM->numDescriptors = CvGLCMDESC_OPTIMIZATION_HISTOGRAM;
+
 }
 
-//CV_CALL( destGLCM->descriptors = (double**)
-//cvAlloc( destGLCM->numMatrices*sizeof(destGLCM->descriptors[0])));
+
 CV_CALL( destGLCM->descriptors = new double*
 [destGLCM->numMatrices*sizeof(destGLCM->descriptors[0])]);
 
 for( matrixLoop = 0; matrixLoop < destGLCM->numMatrices; matrixLoop ++ )
 {
-//CV_CALL( destGLCM->descriptors[ matrixLoop ] =
-//(double*)cvAlloc(destGLCM->numDescriptors*sizeof(destGLCM->descriptors[0][0])));
+
 CV_CALL( destGLCM->descriptors[ matrixLoop ] = new double
 [destGLCM->numDescriptors*sizeof(destGLCM->descriptors[0][0])]);
 memset( destGLCM->descriptors[matrixLoop], 0,
@@ -385,16 +352,7 @@ icv_CreateGLCMDescriptors_AllowDoubleNest( destGLCM, matrixLoop);
 break;
 default:
 CV_ERROR( CV_StsBadFlag, "descriptorOptimizationType different from CvGLCMDESC_OPTIMIZATION_ALLOWDOUBLENEST\n is not supported" );
-/*
-case CvGLCMDESC_OPTIMIZATION_ALLOWTRIPLENEST:
-icvCreateGLCMDescriptors_AllowTripleNest( destGLCM, matrixLoop
-);
-break;
-case CvGLCMDESC_OPTIMIZATION_HISTOGRAM:
-if(matrixLoop < destGLCM->numMatrices>>1)
-icvCreateGLCMDescriptors_Histogram( destGLCM, matrixLoop);
-break;
-*/
+
 }
 }
 
@@ -414,8 +372,7 @@ int matrixSideLength = destGLCM->matrixSideLength;
 double** matrix = destGLCM->matrices[ matrixIndex ];
 double* descriptors = destGLCM->descriptors[ matrixIndex ];
 
-//double* marginalProbability =
-//(double*)cvAlloc( matrixSideLength * sizeof(marginalProbability[0]));
+
 double* marginalProbability =
 new double [matrixSideLength * sizeof(marginalProbability[0])];
 memset( marginalProbability, 0, matrixSideLength * sizeof(double) );
@@ -462,8 +419,8 @@ descriptors[ CV_GLCMDESC_ENERGY ] += entryValue*entryValue;
 }
 
 if( marginalProbability>0 )
-marginalProbabilityEntropy += marginalProbability[ sideLoop1
-]*log(marginalProbability[ sideLoop1 ]);
+marginalProbabilityEntropy += marginalProbability[ actualSideLoop1
+]*log(marginalProbability[ actualSideLoop1 ]);
 }
 
 marginalProbabilityEntropy = -marginalProbabilityEntropy;
@@ -500,8 +457,8 @@ clusterTerm * entryValue;
 descriptors[ CV_GLCMDESC_CLUSTERSHADE ] += clusterTerm * clusterTerm
 * clusterTerm * entryValue;
 
-double HXYValue = marginalProbability[ sideLoop1  ] *
-marginalProbability[ sideLoop2 ];
+double HXYValue = marginalProbability[ actualSideLoop1 ] *
+marginalProbability[ actualSideLoop2 ];
 if( HXYValue>0 )
 {
 double HXYValueLog = log( HXYValue );
